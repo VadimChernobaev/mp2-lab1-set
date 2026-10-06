@@ -9,10 +9,10 @@
 #include <stdexcept>
 #include <string>
 
-// Количество битов в одном элементе TELEM (для unsigned int = 32)
+//Количество битов в одном элементе TELEM (для unsigned int = 32)
 static const int BITS_PER_ELEM = sizeof(TELEM) * 8;
 
-//конструкторы/деструктор
+//конструкторы / деструктор
 
 TBitField::TBitField(int len)
 {
@@ -51,12 +51,12 @@ TBitField::~TBitField()
 
 //вспомогательные
 
-int TBitField::GetMemIndex(const int n) const //индекс в pМем для бита n
+int TBitField::GetMemIndex(const int n) const // индекс в pМем для бита n
 {
     return n / BITS_PER_ELEM;
 }
 
-TELEM TBitField::GetMemMask(const int n) const //битовая маска для бита n
+TELEM TBitField::GetMemMask(const int n) const // битовая маска для бита n
 {
     return static_cast<TELEM>(1) << (n % BITS_PER_ELEM);
 }
@@ -70,20 +70,23 @@ int TBitField::GetLength(void) const
 
 void TBitField::SetBit(const int n)
 {
-    if (n < 0 || n >= BitLen) return;
+    if (n < 0 || n >= BitLen)
+        throw std::out_of_range("bit index out of range");
     pMem[GetMemIndex(n)] |= GetMemMask(n);
 }
 
 void TBitField::ClrBit(const int n)
 {
-    if (n < 0 || n >= BitLen) return;
+    if (n < 0 || n >= BitLen)
+        throw std::out_of_range("bit index out of range");
     pMem[GetMemIndex(n)] &= ~GetMemMask(n);
 }
 
 int TBitField::GetBit(const int n) const
 {
-    if (n < 0 || n >= BitLen) return 0;
-    return (pMem[GetMemIndex(n)] & GetMemMask(n)) != 0;
+    if (n < 0 || n >= BitLen)
+        throw std::out_of_range("bit index out of range");
+    return (pMem[GetMemIndex(n)] & GetMemMask(n)) ? 1 : 0;
 }
 
 //битовые операции
@@ -144,17 +147,12 @@ TBitField TBitField::operator|(const TBitField& bf)
 
 TBitField TBitField::operator&(const TBitField& bf)
 {
-    int minLen = (BitLen < bf.BitLen) ? BitLen : bf.BitLen;
-    TBitField result(minLen);
-    int minMemLen = (MemLen < bf.MemLen) ? MemLen : bf.MemLen;
-    for (int i = 0; i < minMemLen; ++i)
-        result.pMem[i] = pMem[i] & bf.pMem[i];
-    int bitsInLast = minLen % BITS_PER_ELEM;
-    if (bitsInLast != 0 && result.MemLen > 0) {
-        TELEM mask = (static_cast<TELEM>(1) << bitsInLast) - 1;
-        result.pMem[result.MemLen - 1] &= mask;
-    }
-    return result;
+    int maxLen = (BitLen > bf.BitLen) ? BitLen : bf.BitLen;
+    TBitField res(maxLen);
+    int minWords = (MemLen < bf.MemLen) ? MemLen : bf.MemLen;
+    for (int i = 0; i < minWords; ++i)
+        res.pMem[i] = pMem[i] & bf.pMem[i];
+    return res;
 }
 
 TBitField TBitField::operator~(void)
